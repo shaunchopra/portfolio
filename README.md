@@ -1,8 +1,8 @@
-# shaunchopra.com.au
+# shaunchopra.com
 
 My personal portfolio site: projects, AWS certifications, skills, education and contact links.
 
-Live at **https://www.shaunchopra.com.au**
+Live at **https://www.shaunchopra.com**
 
 ## Stack
 
