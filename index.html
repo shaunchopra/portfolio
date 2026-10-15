@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Shaun Chopra</title>
+  <meta name="description" content="Shaun Chopra, Computer Science student at RMIT and AWS Certified Solutions Architect.">
+  <!-- Link preview for LinkedIn, iMessage, etc. -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://www.shaunchopra.com.au/">
+  <meta property="og:title" content="Shaun Chopra">
+  <meta property="og:description" content="Computer Science student at RMIT and AWS Certified Solutions Architect. Projects, certifications and contact.">
+  <meta property="og:image" content="https://www.shaunchopra.com.au/images/shaun.jpg">
+  <meta name="twitter:card" content="summary">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/main.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="site-name" href="#top">SHAUN CHOPRA</a>
+      <nav class="site-nav" aria-label="Sections">
+        <a href="#certs">Certifications</a>
+        <a href="#skills">Skills</a>
+        <a href="#projects">Projects</a>
+        <a href="#education">Education</a>
+        <a href="#contact">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="top">
+    <div class="wrap intro">
+      <div class="intro-photo">
+        <img src="images/shaun.jpg" alt="Shaun Chopra" width="600" height="600">
+      </div>
+      <div>
+        <h1>I'm Shaun Chopra.</h1>
+        <p>Computer Science student at RMIT and AWS Certified Solutions Architect. I build websites and cloud projects, and I like shipping things people actually use.</p>
+        <a class="btn" href="#contact">Say hello</a>
+      </div>
+    </div>
+
+    <section id="certs">
+      <div class="wrap">
+        <h2>Certifications</h2>
+        <div class="badges">
+          <div class="badge">
+            <img src="images/aws-saa.png" alt="AWS Certified Solutions Architect – Associate badge">
+            <span>Solutions Architect – Associate</span>
+          </div>
+          <div class="badge">
+            <img src="images/aws-ccp.png" alt="AWS Certified Cloud Practitioner badge">
+            <span>Cloud Practitioner</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="skills">
+      <div class="wrap">
+        <h2>Skills</h2>
+        <div class="skills">
+          <div>
+            <h3>Languages</h3>
+            <p>JavaScript, Java, C++, SQL, HTML, CSS</p>
+          </div>
+          <div>
+            <h3>Web</h3>
+            <p>Node.js, Express, React, Astro, PostgreSQL, SQLite</p>
+          </div>
+          <div>
+            <h3>AWS</h3>
+            <p>Lambda, API Gateway, S3, CloudFront, EC2, DynamoDB, SES, Route 53</p>
+          </div>
+          <div>
+            <h3>Tools</h3>
+            <p>Git, GitHub, VS Code</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="projects">
+      <div class="wrap">
+        <h2>Projects</h2>
+        <div class="featured">
+          <article class="card">
+            <img src="images/oj.jpg" alt="OJ Auto Detailing website, recent work section" width="1200" height="676" loading="lazy">
+            <div class="card-body">
+              <h3>OJ Auto Detailing</h3>
+              <p>Website for a Melbourne car detailing business, with package pricing and a quote form that goes straight to the owner. Paid freelance work, live since June 2026. I also stood up my own DynamoDB table so every quote request is saved as a record.</p>
+              <div class="card-stack">Astro · Node.js · AWS Lambda · S3 · CloudFront · DynamoDB</div>
+              <a class="card-link" href="https://www.oj-auto-detailing.com.au" target="_blank" rel="noopener">Visit site →</a>
+            </div>
+          </article>
+          <article class="card">
+            <img src="images/kova.jpg" alt="Kova Consulting website homepage" width="1200" height="675" loading="lazy">
+            <div class="card-body">
+              <h3>Kova Consulting</h3>
+              <p>Website for a web services business I co-founded, aimed at Melbourne trade businesses. I built the site, an Express backend and the contact form.</p>
+              <div class="card-stack">JavaScript · Node.js · Express · EC2 · SES · Route 53</div>
+              <a class="card-link" href="https://www.kovaconsultancy.com.au" target="_blank" rel="noopener">Visit site →</a>
+            </div>
+          </article>
+        </div>
+
+        <div class="more">
+          <h3>More projects</h3>
+          <ul class="rows">
+            <li>
+              <div><strong>Minecraft village generator</strong><span class="desc">A C++ program that builds a village in a live Minecraft world. I'm writing the plot finding and house building.</span></div>
+              <span class="meta">C++ · uni team project</span>
+            </li>
+            <li>
+              <div><strong>Scheduled greeting emails</strong><span class="desc">EventBridge Scheduler triggers a Node.js Lambda that sends morning, afternoon and night emails through SES.</span></div>
+              <span class="meta">AWS · personal</span>
+            </li>
+            <li>
+              <div><strong>LC-3 assembly in Minecraft</strong><span class="desc">Assembly programs that build staircases and reverse rows of blocks in Minecraft.</span></div>
+              <span class="meta">Assembly · uni</span>
+            </li>
+            <li>
+              <div><strong>Victorian road crash explorer</strong><span class="desc">A web app over Victorian road crash data, built with a teammate.</span></div>
+              <span class="meta">Java · SQLite · uni</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="education">
+      <div class="wrap">
+        <h2>Education</h2>
+        <ul class="rows">
+          <li>
+            <div><strong>RMIT University</strong><span class="desc">Bachelor of Computer Science (Professional). Completed Java Programming Bootcamp, Java Programming Studio and C++ Programming Bootcamp. Currently taking C++ Programming Studio and Maths for Computing.</span></div>
+            <span class="meta">2026 – present</span>
+          </li>
+          <li>
+            <div><strong>Mernda Central College</strong><span class="desc">Victorian Certificate of Education (VCE)</span></div>
+            <span class="meta">2020 – 2025</span>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="contact" class="contact">
+      <div class="wrap">
+        <h2>Let's talk</h2>
+        <p>I'm looking for a summer internship or any chance to learn from an experienced team.</p>
+        <div class="social">
+          <a href="mailto:shaunchopra08@gmail.com?subject=Hi%20Shaun" aria-label="Email me" title="Email me">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+          </a>
+          <a href="https://www.linkedin.com/in/shaun-chopra-77040b3b6/" target="_blank" rel="noopener" aria-label="My LinkedIn" title="LinkedIn">
+          <img src="images/linkedin.svg" alt="">
+        </a>
+        <a href="https://github.com/shaunchopra" target="_blank" rel="noopener" aria-label="My GitHub" title="GitHub">
+            <img src="images/github.svg" alt="">
+          </a>
+        </div>
+        <a class="email-link" href="mailto:shaunchopra08@gmail.com?subject=Hi%20Shaun">shaunchopra08@gmail.com</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <span class="site-name">SHAUN CHOPRA</span>
+      <div class="social small">
+        <a href="mailto:shaunchopra08@gmail.com?subject=Hi%20Shaun" aria-label="Email me" title="Email me">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+        </a>
+        <a href="https://www.linkedin.com/in/shaun-chopra-77040b3b6/" target="_blank" rel="noopener" aria-label="My LinkedIn" title="LinkedIn">
+          <img src="images/linkedin.svg" alt="">
+        </a>
+        <a href="https://github.com/shaunchopra" target="_blank" rel="noopener" aria-label="My GitHub" title="GitHub">
+          <img src="images/github.svg" alt="">
+        </a>
+      </div>
+      <small>© <span id="year">2026</span> Shaun Chopra</small>
+    </div>
+  </footer>
+</body>
+</html>
