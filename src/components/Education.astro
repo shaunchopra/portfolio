@@ -1,0 +1,15 @@
+---
+import Section from './Section.astro';
+import { education } from '../data/education';
+---
+<Section id="education" title="Education">
+  <ul class="rows rows-dated">
+    {education.map((e) => (
+      <li>
+        <span class="meta">{e.years}</span>
+        <strong>{e.school}</strong>
+        <span class="desc">{e.detail}</span>
+      </li>
+    ))}
+  </ul>
+</Section>

@@ -1,0 +1,422 @@
+/* ==========================================================================
+   Shaun Chopra portfolio: global tokens, base and shared primitives.
+   Component-specific styles live (scoped) in src/components/*.astro.
+   A printed spec sheet: warm paper, near-black ink, one signal colour,
+   hairline rules on a 12-column grid. Bricolage Grotesque for display and
+   text (using its width axis), system monospace for labels and numbers.
+   ========================================================================== */
+
+@font-face {
+  font-family: "Bricolage Grotesque";
+  src: url("/fonts/bricolage-grotesque.woff2") format("woff2");
+  font-weight: 200 800;
+  font-stretch: 75% 100%;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ---------- Tokens ---------- */
+:root {
+  /* Light: ink on paper. Contrast on --paper: ink 15.7, ink-2 8.2, ink-3 5.3, signal 5.2 */
+  --paper: #f4f0e6;
+  --paper-2: #ece6d8;       /* recessed panel */
+  --ink: #1a1712;
+  --ink-2: #4d463c;         /* body copy, secondary */
+  --ink-3: #6a6255;         /* metadata */
+  --rule: #cdc3b0;          /* hairlines */
+  --guide: rgba(26, 23, 18, 0.045); /* background column guides */
+  --signal: #b8360c;        /* the one accent: signal vermilion */
+  --on-ink: #f4f0e6;
+
+  --sans: "Bricolage Grotesque", "Helvetica Neue", Arial, system-ui, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+  --wrap: 1440px;
+  --pad: clamp(1.25rem, 4vw, 3.5rem);
+  --gap: clamp(1rem, 2vw, 1.75rem);
+  --section-y: clamp(4rem, 9vw, 8rem);
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Dark: warm graphite, not black. Contrast on --paper: ink 14.3, ink-2 8.6, ink-3 5.3, signal 6.6 */
+    --paper: #1a1814;
+    --paper-2: #221f1a;
+    --ink: #ede6d6;
+    --ink-2: #bdb4a3;
+    --ink-3: #958c7c;
+    --rule: #3d372e;
+    --guide: rgba(237, 230, 214, 0.035);
+    --signal: #ff7448;
+    --on-ink: #1a1814;
+  }
+}
+
+/* ---------- Base ---------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--paper);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+body {
+  margin: 0;
+  color: var(--ink);
+  font: 400 1.0625rem/1.6 var(--sans);
+  font-optical-sizing: auto;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: clip;
+}
+
+/* Faint 12-column guides behind everything: the grid is part of the look */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0 0 0 50%;
+  z-index: -1;
+  width: min(var(--wrap), 100%);
+  transform: translateX(-50%);
+  padding-inline: var(--pad);
+  background:
+    linear-gradient(to right, var(--guide) 1px, transparent 1px)
+    content-box 0 0 / calc((100% - 2 * var(--pad) + var(--gap)) / 12) 100% repeat-x;
+  box-shadow: inset 1px 0 var(--guide), inset -1px 0 var(--guide);
+  pointer-events: none;
+}
+
+::selection {
+  background: var(--signal);
+  color: var(--on-ink);
+}
+
+img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+h1, h2, h3, p, ul, ol, dl, dd, figure {
+  margin: 0;
+}
+
+ul, ol {
+  padding: 0;
+  list-style: none;
+}
+
+a {
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: 3px;
+}
+
+main:focus {
+  outline: none;
+}
+
+.mono,
+.idx {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.wrap {
+  width: 100%;
+  max-width: var(--wrap);
+  margin-inline: auto;
+  padding-inline: var(--pad);
+}
+
+/* ---------- Skip link ---------- */
+.skip-link {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 10;
+  padding: 0.6rem 0.9rem;
+  background: var(--ink);
+  color: var(--paper);
+  font: 500 0.875rem var(--mono);
+  transform: translateY(-160%);
+}
+
+.skip-link:focus {
+  transform: none;
+}
+
+/* ---------- Shared type ---------- */
+h2 {
+  font-size: clamp(2.25rem, 4.6vw, 4rem);
+  font-weight: 700;
+  font-stretch: 80%;
+  line-height: 0.95;
+  letter-spacing: -0.025em;
+  margin-bottom: clamp(2rem, 4vw, 3.5rem);
+}
+
+h3 {
+  font-size: clamp(1.5rem, 2.2vw, 1.875rem);
+  font-weight: 650;
+  font-stretch: 85%;
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+}
+
+.text-link {
+  font-weight: 550;
+  text-decoration: underline;
+  text-decoration-color: var(--signal);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 0.25em;
+  transition: color 150ms ease;
+}
+
+.text-link[target="_blank"]::after {
+  content: "\2197" / "";
+  display: inline-block;
+  margin-left: 0.2em;
+  font-family: var(--mono);
+  font-size: 0.85em;
+  color: var(--signal);
+}
+
+.text-link:hover {
+  color: var(--signal);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.875rem;
+  padding: 0 1.35rem;
+  background: var(--ink);
+  color: var(--paper);
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color 150ms ease;
+}
+
+.btn:hover {
+  background: var(--signal);
+  color: var(--on-ink);
+}
+
+/* Label / value pairs in mono, like the fields on a drawing's title block */
+.spec {
+  display: grid;
+  gap: 0;
+}
+
+.spec > div {
+  display: grid;
+  grid-template-columns: 8.5rem 1fr;
+  align-content: start;
+  gap: 1rem;
+  padding-block: 0.7rem;
+  border-top: 1px solid var(--rule);
+}
+
+.spec dt {
+  font: 400 0.75rem/1.6 var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-3);
+  padding-top: 0.15em;
+}
+
+.spec dd {
+  color: var(--ink);
+}
+
+/* ---------- Section frame ---------- */
+.section {
+  padding-block: var(--section-y) 0;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  column-gap: var(--gap);
+}
+
+.section .grid {
+  padding-top: 1rem;
+  position: relative;
+}
+
+/* The rule above each section sits inside the wrap, on the grid */
+.section .grid::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: var(--pad);
+  right: var(--pad);
+  border-top: 1px solid var(--ink);
+}
+
+.section-label {
+  grid-column: 1 / span 3;
+  font: 400 0.75rem/1.6 var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-3);
+}
+
+.section-label .idx {
+  color: var(--signal);
+}
+
+.section-body {
+  grid-column: 4 / -1;
+  min-width: 0;
+}
+
+@media (max-width: 899px) {
+  .section-label,
+  .section-body {
+    grid-column: 1 / -1;
+  }
+
+  .section-label {
+    margin-bottom: 2.25rem;
+  }
+}
+
+/* ---------- Row lists (more projects, education) ---------- */
+.rows {
+  border-bottom: 1px solid var(--rule);
+}
+
+.rows li {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.6fr) minmax(9rem, 0.6fr);
+  column-gap: var(--gap);
+  align-items: baseline;
+  padding-block: 1.1rem;
+  border-top: 1px solid var(--rule);
+}
+
+.rows li:first-child {
+  border-top-color: var(--ink);
+}
+
+.rows strong {
+  font-size: 1.125rem;
+  font-weight: 600;
+  font-stretch: 88%;
+  line-height: 1.3;
+}
+
+.rows .desc {
+  color: var(--ink-2);
+  text-wrap: pretty;
+}
+
+.rows .meta {
+  font: 400 0.75rem/1.6 var(--mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-3);
+  text-align: right;
+}
+
+.rows-dated li {
+  grid-template-columns: minmax(9rem, 0.5fr) minmax(0, 2.4fr);
+  row-gap: 0.4rem;
+}
+
+.rows-dated .meta {
+  grid-row: 1 / span 2;
+  text-align: left;
+  font-size: 0.8125rem;
+  color: var(--ink);
+}
+
+.rows-dated strong,
+.rows-dated .desc {
+  grid-column: 2;
+}
+
+.rows-dated strong {
+  font-size: clamp(1.25rem, 1.8vw, 1.5rem);
+  font-weight: 650;
+  font-stretch: 85%;
+}
+
+.rows-dated .desc {
+  max-width: 60ch;
+}
+
+@media (max-width: 899px) {
+  .rows li {
+    grid-template-columns: minmax(0, 1fr) auto;
+    row-gap: 0.35rem;
+  }
+
+  .rows .desc {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .rows .meta {
+    grid-row: 1;
+    grid-column: 2;
+  }
+
+  .rows-dated li {
+    grid-template-columns: 1fr;
+  }
+
+  .rows-dated .meta,
+  .rows-dated strong,
+  .rows-dated .desc {
+    grid-column: 1;
+    grid-row: auto;
+  }
+}
+
+@media (max-width: 479px) {
+  .rows li {
+    grid-template-columns: 1fr;
+  }
+
+  .rows .meta {
+    grid-column: 1;
+    grid-row: 3;
+    text-align: left;
+  }
+
+  .rows-dated .meta {
+    grid-row: auto;
+  }
+}
+
+/* ---------- Print: it is already a spec sheet ---------- */
+@media print {
+  body::before,
+  .skip-link,
+  .masthead-nav {
+    display: none;
+  }
+
+  .hop::after {
+    transform: scaleY(1);
+  }
+}

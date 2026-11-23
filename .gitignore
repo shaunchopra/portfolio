@@ -1,2 +1,15 @@
 .DS_Store
 *.zip
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+*.tfplan
+
+# Astro
+node_modules/
+dist/
+.astro/

@@ -1,0 +1,197 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  TF_VERSION: "1.15.1"
+
+jobs:
+  site:
+    name: Site (build + HTML + links + SEO)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type/diagnostic check (astro check)
+        run: npm run check
+
+      - name: Build
+        run: npm run build
+
+      - name: Validate HTML
+        run: npx --yes html-validate@11.21.1 'dist/**/*.html'
+
+      - name: Check internal links and assets
+        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
+        with:
+          args: >-
+            --offline
+            --no-progress
+            --include-fragments
+            --root-dir ${{ github.workspace }}/dist
+            './dist/**/*.html'
+          fail: true
+          jobSummary: true
+
+      - name: SEO assertions (required files, canonical, JSON-LD)
+        run: node .github/scripts/check-seo.mjs dist
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
+
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      terraform: ${{ steps.filter.outputs.terraform }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Filter paths
+        id: filter
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        with:
+          filters: |
+            terraform:
+              - 'terraform/**'
+              - '.github/workflows/ci.yml'
+
+  terraform:
+    name: Terraform (fmt + validate)
+    needs: changes
+    if: needs.changes.outputs.terraform == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: terraform
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: terraform fmt
+        run: terraform fmt -check -recursive -diff
+
+      - name: terraform init (no backend)
+        run: terraform init -backend=false -input=false
+
+      - name: terraform validate
+        run: terraform validate -no-color
+
+  terraform-plan:
+    name: Terraform plan
+    needs: [changes, terraform]
+    # Only for same-repo PRs: fork PRs cannot mint OIDC tokens for our AWS role.
+    if: >-
+      github.event_name == 'pull_request' &&
+      needs.changes.outputs.terraform == 'true' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        working-directory: terraform
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          role-session-name: gha-tf-plan-${{ github.run_id }}
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: terraform init
+        run: terraform init -input=false -lock=false
+
+      - name: terraform plan
+        id: plan
+        run: |
+          set +e
+          terraform plan -input=false -lock=false -no-color -detailed-exitcode -out=tfplan > plan.txt 2>&1
+          code=$?
+          set -e
+          cat plan.txt
+          echo "exitcode=$code" >> "$GITHUB_OUTPUT"
+          # 0 = no changes, 2 = changes present, anything else = error
+          if [ "$code" -ne 0 ] && [ "$code" -ne 2 ]; then exit "$code"; fi
+
+      - name: Summarise plan
+        if: always() && steps.plan.outputs.exitcode != ''
+        env:
+          PLAN_EXIT: ${{ steps.plan.outputs.exitcode }}
+        run: |
+          case "$PLAN_EXIT" in
+            0) headline="No changes." ;;
+            2) headline="$(grep -E '^Plan:' plan.txt || echo 'Changes present.')" ;;
+            *) headline="Plan failed (exit $PLAN_EXIT)." ;;
+          esac
+          {
+            echo "## Terraform plan"
+            echo ""
+            echo "**${headline}**"
+            echo ""
+            echo "<details><summary>Full plan output</summary>"
+            echo ""
+            echo '```'
+            # Job summaries are capped at 1 MiB; keep well under it.
+            head -c 900000 plan.txt
+            echo '```'
+            echo "</details>"
+          } >> "$GITHUB_STEP_SUMMARY"

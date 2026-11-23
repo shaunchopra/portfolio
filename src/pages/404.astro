@@ -1,0 +1,78 @@
+---
+import Base from '../layouts/Base.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import { site } from '../data/site';
+---
+<Base
+  title={`Page not found · ${site.name}`}
+  description="There is no page at this address. Head back to the home page of Shaun Chopra's portfolio."
+  path="/404"
+  noindex
+>
+  <Header nav={false} />
+  <main id="main" tabindex="-1">
+    <div class="wrap grid notfound">
+      <p class="notfound-code" aria-hidden="true">4<em>0</em>4</p>
+      <p class="section-label"><span class="idx">404</span> / Not found</p>
+      <div class="section-body">
+        <h1>This page isn't here</h1>
+        <p>There is no page at this address. It may have moved, or the link may have a typo.</p>
+        <a class="btn" href="/">Back to the home page</a>
+      </div>
+    </div>
+  </main>
+  <Footer minimal />
+</Base>
+
+<style>
+/* ---------- 404 ---------- */
+.notfound {
+  padding-block: clamp(3rem, 8vw, 6rem) 0;
+}
+
+.notfound-code {
+  grid-column: 1 / -1;
+  font-size: clamp(6rem, 26vw, 22rem);
+  font-weight: 700;
+  font-stretch: 75%;
+  line-height: 0.8;
+  letter-spacing: -0.04em;
+  margin-left: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.notfound-code em {
+  font-style: normal;
+  color: var(--signal);
+}
+
+.notfound .section-body {
+  padding-top: clamp(2rem, 4vw, 3rem);
+}
+
+.notfound h1 {
+  font-size: clamp(2.25rem, 4.6vw, 4rem);
+  font-weight: 700;
+  font-stretch: 80%;
+  line-height: 0.95;
+  letter-spacing: -0.025em;
+  margin-bottom: 1.25rem;
+}
+
+.notfound .section-body > p {
+  max-width: 44ch;
+  color: var(--ink-2);
+  margin-bottom: 2rem;
+}
+
+.notfound .section-label {
+  padding-top: clamp(2rem, 4vw, 3rem);
+}
+
+@media (max-width: 899px) {
+  .notfound .section-body {
+    padding-top: 0;
+  }
+}
+</style>

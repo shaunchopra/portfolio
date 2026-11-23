@@ -1,0 +1,23 @@
+---
+// The numbered frame every content section shares: a rule, a mono label
+// ("02 / Credentials") in the left columns, the heading and body on the right.
+import { sectionMeta, type SectionId } from '../data/site';
+
+interface Props {
+  id: SectionId;
+  title: string;
+  class?: string;
+}
+
+const { id, title, class: className } = Astro.props;
+const { index, label } = sectionMeta(id);
+---
+<section class:list={['section', className]} id={id} aria-labelledby={`${id}-title`}>
+  <div class="wrap grid">
+    <p class="section-label"><span class="idx">{index}</span> / {label}</p>
+    <div class="section-body">
+      <h2 id={`${id}-title`}>{title}</h2>
+      <slot />
+    </div>
+  </div>
+</section>

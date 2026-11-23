@@ -1,0 +1,81 @@
+---
+import { site, sections } from '../data/site';
+
+interface Props {
+  /** Show the section nav (off on pages without those sections, like the 404) */
+  nav?: boolean;
+}
+
+const { nav = true } = Astro.props;
+---
+<header class="masthead" id="top">
+  <div class="wrap masthead-row">
+    <a class="masthead-name" href={nav ? '#top' : '/'}>{site.name}</a>
+    {nav && (
+      <nav class="masthead-nav" aria-label="Sections">
+        {sections.map((s, i) => (
+          <a href={`#${s.id}`}>
+            <span class="idx" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>{s.nav}
+          </a>
+        ))}
+      </nav>
+    )}
+  </div>
+</header>
+
+<style>
+/* ---------- Masthead ---------- */
+.masthead-row {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem 2rem;
+  padding-block: 1.25rem 1rem;
+}
+
+.masthead-row::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: var(--pad);
+  right: var(--pad);
+  border-top: 1px solid var(--ink);
+}
+
+.masthead-name {
+  font-weight: 650;
+  font-stretch: 85%;
+  font-size: 1.125rem;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+}
+
+.masthead-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1.5rem;
+  font: 400 0.75rem/1.4 var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.masthead-nav a {
+  color: var(--ink-2);
+  text-decoration: none;
+  padding-block: 0.25rem;
+}
+
+.masthead-nav a:hover {
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: var(--signal);
+  text-underline-offset: 0.3em;
+}
+
+.masthead-nav .idx {
+  color: var(--signal);
+  margin-right: 0.45em;
+}
+</style>

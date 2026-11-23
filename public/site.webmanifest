@@ -1,0 +1,17 @@
+{
+  "name": "Shaun Chopra",
+  "short_name": "Shaun Chopra",
+  "description": "Computer Science student at RMIT with three AWS certifications. Projects, certifications and contact.",
+  "lang": "en-AU",
+  "start_url": "/",
+  "scope": "/",
+  "display": "browser",
+  "background_color": "#f4f0e6",
+  "theme_color": "#f4f0e6",
+  "icons": [
+    { "src": "/favicon.svg", "type": "image/svg+xml", "sizes": "any" },
+    { "src": "/icon-192.png", "type": "image/png", "sizes": "192x192" },
+    { "src": "/icon-512.png", "type": "image/png", "sizes": "512x512" },
+    { "src": "/apple-touch-icon.png", "type": "image/png", "sizes": "180x180" }
+  ]
+}
