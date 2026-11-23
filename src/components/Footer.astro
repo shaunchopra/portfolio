@@ -1,0 +1,72 @@
+---
+import { site } from '../data/site';
+
+interface Props {
+  /** Compact footer for pages like the 404 */
+  minimal?: boolean;
+}
+
+const { minimal = false } = Astro.props;
+const year = new Date().getFullYear();
+---
+<footer class="colophon">
+  <div class="wrap colophon-row">
+    <small>© <span data-year>{year}</span> {site.name}</small>
+    {minimal ? (
+      <small><a href={`mailto:${site.email}`}>{site.email}</a></small>
+    ) : (
+      <small>
+        Built with Astro and hosted on AWS.{' '}
+        <a href={site.source} target="_blank" rel="noopener">View the source on GitHub</a>
+      </small>
+    )}
+  </div>
+</footer>
+
+<script>
+  // Keep the copyright year current between builds
+  for (const el of document.querySelectorAll('[data-year]')) {
+    el.textContent = String(new Date().getFullYear());
+  }
+</script>
+
+<style>
+/* ---------- Colophon ---------- */
+.colophon {
+  margin-top: var(--section-y);
+}
+
+.colophon-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem 2rem;
+  padding-block: 1.25rem 2.5rem;
+  position: relative;
+  font: 400 0.75rem/1.6 var(--mono);
+  color: var(--ink-3);
+}
+
+.colophon-row::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: var(--pad);
+  right: var(--pad);
+  border-top: 1px solid var(--ink);
+}
+
+.colophon small {
+  font-size: inherit;
+}
+
+.colophon a {
+  color: var(--ink);
+  text-decoration-color: var(--signal);
+  text-underline-offset: 0.25em;
+}
+
+.colophon a:hover {
+  color: var(--signal);
+}
+</style>

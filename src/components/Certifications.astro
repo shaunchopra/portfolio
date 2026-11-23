@@ -1,0 +1,82 @@
+---
+import { Picture } from 'astro:assets';
+import Section from './Section.astro';
+import { certs } from '../data/certs';
+---
+<Section id="certs" title="Certifications">
+  <ul class="certs">
+    {certs.map((cert) => (
+      <li class="cert">
+        <Picture
+          src={cert.badge}
+          alt={cert.alt}
+          formats={['avif', 'webp']}
+          height={64}
+          densities={[1, 2]}
+          loading="lazy"
+          decoding="async"
+        />
+        <span class="cert-name">{cert.name}</span>
+        <span class="cert-level">{cert.level}</span>
+      </li>
+    ))}
+  </ul>
+</Section>
+
+<style>
+/* ---------- Certifications: a ledger, not a card grid ---------- */
+.certs {
+  border-bottom: 1px solid var(--rule);
+}
+
+.cert {
+  display: grid;
+  grid-template-columns: 4rem minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: var(--gap);
+  padding-block: 1rem;
+  border-top: 1px solid var(--rule);
+}
+
+.cert:first-child {
+  border-top-color: var(--ink);
+}
+
+.cert :global(img) {
+  width: 3.5rem;
+  height: 4rem;
+  object-fit: contain;
+}
+
+.cert-name {
+  font-size: clamp(1.375rem, 2.4vw, 2rem);
+  font-weight: 650;
+  font-stretch: 82%;
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+}
+
+.cert-level {
+  font: 400 0.75rem/1.4 var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-3);
+}
+
+@media (max-width: 479px) {
+  .cert {
+    grid-template-columns: 3rem minmax(0, 1fr);
+    row-gap: 0.25rem;
+  }
+
+  .cert :global(img) {
+    grid-row: 1 / span 2;
+    width: 2.75rem;
+    height: 3.25rem;
+  }
+
+  .cert-level {
+    grid-column: 2;
+  }
+}
+</style>

@@ -1,0 +1,52 @@
+---
+// Everything a crawler or link preview reads from <head>.
+import { site } from '../data/site';
+
+interface Props {
+  title: string;
+  description: string;
+  /** Path of this page, e.g. "/" — used for the canonical URL and og:url */
+  path: string;
+  image?: { path: string; width: number; height: number; alt: string };
+  noindex?: boolean;
+  /** Structured data, rendered as one JSON-LD script */
+  jsonLd?: Record<string, unknown>;
+}
+
+const { title, description, path, image = site.ogImage, noindex = false, jsonLd } = Astro.props;
+
+const canonical = new URL(path, site.url).href;
+const imageUrl = new URL(image.path, site.url).href;
+
+// Escape "<" so content can never close the script element early
+const ldJson = jsonLd ? JSON.stringify(jsonLd).replace(/</g, '\\u003c') : undefined;
+---
+<title>{title}</title>
+<meta name="description" content={description}>
+{!noindex && <link rel="canonical" href={canonical}>}
+<meta
+  name="robots"
+  content={noindex ? 'noindex, follow' : 'index, follow, max-image-preview:large, max-snippet:-1'}
+>
+
+<meta property="og:type" content="profile">
+<meta property="og:site_name" content={site.name}>
+<meta property="og:locale" content={site.locale}>
+<meta property="og:url" content={canonical}>
+<meta property="og:title" content={title}>
+<meta property="og:description" content={description}>
+<meta property="og:image" content={imageUrl}>
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content={String(image.width)}>
+<meta property="og:image:height" content={String(image.height)}>
+<meta property="og:image:alt" content={image.alt}>
+<meta property="profile:first_name" content={site.givenName}>
+<meta property="profile:last_name" content={site.familyName}>
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content={title}>
+<meta name="twitter:description" content={description}>
+<meta name="twitter:image" content={imageUrl}>
+<meta name="twitter:image:alt" content={image.alt}>
+
+{ldJson && <script type="application/ld+json" set:html={ldJson} />}

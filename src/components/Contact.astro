@@ -1,0 +1,49 @@
+---
+import Section from './Section.astro';
+import { site, mailto } from '../data/site';
+---
+<Section id="contact" title="Contact">
+  <p class="contact-lead">{site.contactLead}</p>
+  <a class="email" href={mailto}>{site.email}</a>
+  <div class="contact-links">
+    <a class="text-link" href={site.linkedin} target="_blank" rel="noopener">LinkedIn</a>
+    <a class="text-link" href={site.github} target="_blank" rel="noopener">GitHub</a>
+  </div>
+</Section>
+
+<style>
+/* ---------- Contact ---------- */
+.contact-lead {
+  font-size: clamp(1.25rem, 1.9vw, 1.625rem);
+  line-height: 1.38;
+  max-width: 30ch;
+  text-wrap: pretty;
+}
+
+.email {
+  display: inline-block;
+  margin-top: clamp(2rem, 4vw, 3rem);
+  font-size: clamp(1.6rem, 6.2vw, 6rem);
+  font-weight: 700;
+  font-stretch: 75%;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  text-decoration: underline;
+  text-decoration-color: var(--signal);
+  text-decoration-thickness: 0.06em;
+  text-underline-offset: 0.14em;
+  overflow-wrap: anywhere;
+  transition: color 150ms ease;
+}
+
+.email:hover {
+  color: var(--signal);
+}
+
+.contact-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 2rem;
+  margin-top: 2rem;
+}
+</style>

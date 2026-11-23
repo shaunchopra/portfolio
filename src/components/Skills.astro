@@ -1,0 +1,55 @@
+---
+import Section from './Section.astro';
+import { skills } from '../data/skills';
+---
+<Section id="skills" title="Skills">
+  <dl class="skills">
+    {skills.map((s) => (
+      <div>
+        <dt>{s.group}</dt>
+        <dd>{s.items.join(', ')}</dd>
+      </div>
+    ))}
+  </dl>
+</Section>
+
+<style>
+/* ---------- Skills ---------- */
+.skills {
+  border-bottom: 1px solid var(--rule);
+}
+
+.skills > div {
+  display: grid;
+  grid-template-columns: minmax(9rem, 0.5fr) minmax(0, 2.4fr);
+  column-gap: var(--gap);
+  align-items: baseline;
+  padding-block: 1rem;
+  border-top: 1px solid var(--rule);
+}
+
+.skills > div:first-child {
+  border-top-color: var(--ink);
+}
+
+.skills dt {
+  font: 400 0.75rem/1.6 var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-3);
+}
+
+.skills dd {
+  font-size: clamp(1.125rem, 1.6vw, 1.375rem);
+  font-stretch: 92%;
+  line-height: 1.4;
+  letter-spacing: -0.005em;
+}
+
+@media (max-width: 479px) {
+  .skills > div {
+    grid-template-columns: 1fr;
+    row-gap: 0.35rem;
+  }
+}
+</style>

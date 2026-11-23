@@ -1,0 +1,176 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "public/**"
+      - "package.json"
+      - "package-lock.json"
+      - "astro.config.*"
+      - "tsconfig.json"
+      - ".nvmrc"
+      - ".github/workflows/deploy.yml"
+      - ".github/scripts/s3-upload.sh"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Never run two deploys at once; queue the newest instead of cancelling mid-sync.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+env:
+  SITE_URL: https://www.shaunchopra.com/
+  APEX_URL: https://shaunchopra.com/
+
+jobs:
+  deploy:
+    name: Build and deploy to S3 + CloudFront
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment:
+      name: production
+      url: ${{ env.SITE_URL }}
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check
+        run: npm run check
+
+      - name: Build
+        run: npm run build
+
+      - name: Sanity-check build output
+        run: |
+          set -euo pipefail
+          test -s dist/index.html || { echo "::error::dist/index.html missing"; exit 1; }
+          echo "Files to publish: $(find dist -type f | wc -l)"
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          role-session-name: gha-deploy-${{ github.run_id }}
+
+      - name: Upload to S3 (assets first, HTML last)
+        # Cache-Control: _astro/** immutable 1y; *.html max-age=0 must-revalidate;
+        # sitemap*.xml/robots.txt/site.webmanifest 1h; everything else 1d.
+        # Explicit Content-Types (incl. webmanifest, xml, avif, woff2).
+        env:
+          BUCKET: ${{ vars.S3_BUCKET }}
+        run: bash .github/scripts/s3-upload.sh dist "$BUCKET"
+
+      - name: Invalidate CloudFront and wait
+        id: invalidate
+        env:
+          DISTRIBUTION_ID: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}
+        run: |
+          set -euo pipefail
+          id=$(aws cloudfront create-invalidation \
+            --distribution-id "$DISTRIBUTION_ID" \
+            --paths "/*" \
+            --query 'Invalidation.Id' --output text)
+          echo "invalidation_id=$id" >> "$GITHUB_OUTPUT"
+          echo "Waiting for invalidation $id ..."
+          aws cloudfront wait invalidation-completed \
+            --distribution-id "$DISTRIBUTION_ID" --id "$id"
+          echo "Invalidation $id completed."
+
+      - name: Prune stale objects
+        # Runs after the invalidation so edge-cached old HTML can't reference
+        # an old hashed bundle that has already been deleted. --size-only stops
+        # sync from re-uploading files just written (and dropping their
+        # Cache-Control/Content-Type); in practice this pass only deletes.
+        env:
+          BUCKET: ${{ vars.S3_BUCKET }}
+        run: |
+          set -euo pipefail
+          aws s3 sync dist "s3://${BUCKET}" --delete --size-only --no-progress | tee prune.log
+          echo "Pruned: $(grep -c '^delete:' prune.log || true)"
+
+      - name: Smoke tests
+        id: smoke
+        run: |
+          set -uo pipefail
+          status() { curl -sS -o /dev/null -w '%{http_code}' --max-time 15 -H 'Cache-Control: no-cache' "$1" || echo 000; }
+          fail=0
+
+          # 1. www home must be 200 (retry briefly in case the edge is warming).
+          for attempt in 1 2 3 4 5; do
+            home=$(status "$SITE_URL")
+            [ "$home" = "200" ] && break
+            echo "home attempt $attempt: HTTP $home"; sleep $((attempt * 5))
+          done
+          echo "home=$home" >> "$GITHUB_OUTPUT"
+          if [ "$home" = "200" ]; then echo "OK  $SITE_URL -> 200"; else echo "::error::$SITE_URL returned $home (want 200)"; fail=1; fi
+
+          # 2. robots.txt must be 200.
+          robots=$(status "${SITE_URL}robots.txt")
+          echo "robots=$robots" >> "$GITHUB_OUTPUT"
+          if [ "$robots" = "200" ]; then echo "OK  ${SITE_URL}robots.txt -> 200"; else echo "::error::${SITE_URL}robots.txt returned $robots (want 200)"; fail=1; fi
+
+          # 3. Apex should 301 to www (warn-only until the Terraform redirect lands).
+          read -r apex_code apex_loc < <(curl -sS -o /dev/null -w '%{http_code} %{redirect_url}\n' --max-time 15 "$APEX_URL" || echo "000 -")
+          echo "apex=$apex_code ${apex_loc}" >> "$GITHUB_OUTPUT"
+          if [ "$apex_code" = "301" ] && [[ "$apex_loc" == https://www.shaunchopra.com/* ]]; then
+            echo "OK  $APEX_URL -> 301 $apex_loc"
+          else
+            echo "::warning::$APEX_URL returned $apex_code ${apex_loc:-} (want 301 -> https://www.shaunchopra.com/)"
+          fi
+
+          # 4. A missing path should be a real 404 (warn-only).
+          missing="${SITE_URL}__smoke-$(date +%s)-${RANDOM}"
+          nf=$(status "$missing")
+          echo "notfound=$nf" >> "$GITHUB_OUTPUT"
+          if [ "$nf" = "404" ]; then echo "OK  missing path -> 404"; else echo "::warning::$missing returned $nf (want 404)"; fi
+
+          exit $fail
+
+      - name: Job summary
+        if: always()
+        env:
+          BUCKET: ${{ vars.S3_BUCKET }}
+          DISTRIBUTION_ID: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}
+          INVALIDATION_ID: ${{ steps.invalidate.outputs.invalidation_id }}
+          HOME_STATUS: ${{ steps.smoke.outputs.home }}
+          ROBOTS_STATUS: ${{ steps.smoke.outputs.robots }}
+          APEX_STATUS: ${{ steps.smoke.outputs.apex }}
+          NOTFOUND_STATUS: ${{ steps.smoke.outputs.notfound }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          files=0; [ -d dist ] && files=$(find dist -type f | wc -l | tr -d ' ')
+          pruned=0; [ -f prune.log ] && pruned=$(grep -c '^delete:' prune.log || true)
+          {
+            echo "## Deploy: ${JOB_STATUS}"
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| Commit | \`${GITHUB_SHA::7}\` |"
+            echo "| Bucket | \`${BUCKET}\` |"
+            echo "| Files published / pruned | ${files} / ${pruned} |"
+            echo "| CloudFront | \`${DISTRIBUTION_ID}\` invalidation \`${INVALIDATION_ID:-n/a}\` |"
+            echo "| www home (want 200) | ${HOME_STATUS:-not run} |"
+            echo "| robots.txt (want 200) | ${ROBOTS_STATUS:-not run} |"
+            echo "| apex (want 301 → www, warn-only) | ${APEX_STATUS:-not run} |"
+            echo "| missing path (want 404, warn-only) | ${NOTFOUND_STATUS:-not run} |"
+          } >> "$GITHUB_STEP_SUMMARY"

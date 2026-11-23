@@ -1,0 +1,553 @@
+---
+// "How this page reaches you": the route a visit takes through the AWS setup
+// behind this site. The client script below fills in measured numbers, but
+// only on the live domain; everywhere else the static text stands.
+import Section from './Section.astro';
+
+const hops = [
+  { key: 'browser', node: 'Your browser', role: 'asks for shaunchopra.com' },
+  { key: 'dns', node: 'Route 53', role: 'answers the DNS lookup' },
+  { key: 'edge', node: 'CloudFront', role: 'serves the page over HTTPS from the nearest edge location' },
+  { key: 'origin', node: 'S3', role: 'keeps the files in a private bucket in Sydney that only CloudFront can read' },
+] as const;
+---
+<Section id="route" title="How this page reaches you">
+  <p class="route-note" id="route-note">I set up the hosting for this site on AWS myself. Every visit takes this route.</p>
+
+  <div class="trace" id="trace" data-state="static">
+    <div class="trace-head" aria-hidden="true">
+      <span>Hop</span><span>Node</span><span>Role</span><span>This visit</span>
+    </div>
+    <ol class="trace-hops">
+      {hops.map((hop, i) => (
+        <li class="hop" data-hop={hop.key}>
+          <span class="hop-n" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
+          <strong class="hop-node">{hop.node}</strong>
+          <span class="hop-role">{hop.role}</span>
+          <span class="hop-live" data-live={hop.key}></span>
+        </li>
+      ))}
+    </ol>
+
+    <!-- Waterfall of this visit's real Navigation Timing phases.
+         Hidden until the script has genuine numbers to put in it. -->
+    <figure class="waterfall" id="waterfall" hidden>
+      <figcaption class="waterfall-cap">
+        <span>Timeline of this visit</span>
+        <span class="waterfall-total" id="waterfall-total"></span>
+      </figcaption>
+      <ol class="waterfall-rows" id="waterfall-rows"></ol>
+    </figure>
+
+    <p class="trace-foot" id="trace-foot">Live numbers appear when this page is served from shaunchopra.com. Anywhere else the request never passed through Route 53, CloudFront or S3, so there is nothing honest to measure.</p>
+  </div>
+</Section>
+
+<script>
+  // Show how long each stop took for THIS visit.
+  //
+  // The browser records timings for the page load (the Navigation Timing API),
+  // and CloudFront adds response headers saying which edge location answered
+  // and whether it had the page cached. This only runs on the real site,
+  // because anywhere else (local dev, a preview) the request never went
+  // through Route 53, CloudFront or S3, so the numbers would be wrong.
+  // Off the live site no number is ever shown.
+
+  const ON_LIVE_SITE = /(^|\.)shaunchopra\.com$/.test(location.hostname);
+
+  // CloudFront names edge locations after the nearest airport (MEL50-C1 etc.)
+  const EDGE_CITIES: Record<string, string> = {
+    MEL: 'Melbourne',
+    SYD: 'Sydney',
+    BNE: 'Brisbane',
+    PER: 'Perth',
+    ADL: 'Adelaide',
+    AKL: 'Auckland',
+    SIN: 'Singapore',
+    HKG: 'Hong Kong',
+    NRT: 'Tokyo',
+    BOM: 'Mumbai',
+    DEL: 'Delhi',
+    LHR: 'London',
+    FRA: 'Frankfurt',
+    LAX: 'Los Angeles',
+    SFO: 'San Francisco',
+    SEA: 'Seattle',
+    JFK: 'New York',
+    IAD: 'Virginia',
+  };
+
+  const PROTOCOLS: Record<string, string> = {
+    h3: 'HTTP/3',
+    h2: 'HTTP/2',
+    'http/1.1': 'HTTP/1.1',
+  };
+
+  const HOP_ORDER = ['browser', 'dns', 'edge', 'origin'] as const;
+  type Hop = (typeof HOP_ORDER)[number];
+
+  /** A plain string, or [string] for an emphasised (measured) value */
+  type Part = string | [string];
+
+  function ms(value: number): string {
+    return Math.max(1, Math.round(value)) + ' ms';
+  }
+
+  function setText(id: string, text: string): void {
+    const el = document.getElementById(id);
+    if (el) el.textContent = text;
+  }
+
+  // Fill one hop's "This visit" cell, built from text nodes only
+  function setLive(name: Hop, parts: Part[]): void {
+    const el = document.querySelector<HTMLElement>(`[data-live="${name}"]`);
+    if (!el || parts.length === 0) return;
+
+    el.textContent = '';
+    for (const part of parts) {
+      if (Array.isArray(part)) {
+        const b = document.createElement('b');
+        b.textContent = part[0];
+        el.append(b);
+      } else {
+        el.append(part);
+      }
+    }
+
+    const hop = el.closest<HTMLElement>('.hop');
+    if (hop) {
+      hop.style.setProperty('--i', String(HOP_ORDER.indexOf(name)));
+      hop.classList.add('is-live');
+    }
+  }
+
+  // Draw the real phases of this page load as a waterfall
+  function drawWaterfall(nav: PerformanceNavigationTiming, total: number): void {
+    const figure = document.getElementById('waterfall');
+    const list = document.getElementById('waterfall-rows');
+    if (!figure || !list || total <= 0) return;
+
+    const phases: [string, number, number][] = [
+      ['DNS lookup', nav.domainLookupStart, nav.domainLookupEnd],
+      [nav.secureConnectionStart > 0 ? 'Connect + TLS' : 'Connect', nav.connectStart, nav.connectEnd],
+      ['First byte', nav.requestStart, nav.responseStart],
+      ['Download', nav.responseStart, nav.responseEnd],
+    ];
+
+    phases
+      .filter(([, start, end]) => end > start && start >= nav.startTime)
+      .forEach(([label, start, end], i) => {
+        const row = document.createElement('li');
+        row.className = 'wf-row';
+        row.style.setProperty('--i', String(i));
+
+        const name = document.createElement('span');
+        name.className = 'wf-label';
+        name.textContent = label;
+
+        const track = document.createElement('span');
+        track.className = 'wf-track';
+        track.setAttribute('aria-hidden', 'true');
+        const bar = document.createElement('span');
+        bar.className = 'wf-bar';
+        bar.style.left = ((start - nav.startTime) / total) * 100 + '%';
+        bar.style.width = ((end - start) / total) * 100 + '%';
+        track.append(bar);
+
+        const value = document.createElement('span');
+        value.className = 'wf-ms';
+        value.textContent = ms(end - start);
+
+        row.append(name, track, value);
+        list.append(row);
+      });
+
+    setText('waterfall-total', 'Total ' + ms(total));
+    figure.hidden = false;
+  }
+
+  async function showRoute(): Promise<void> {
+    const nav = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined;
+    if (!nav || nav.responseEnd === 0) return;
+
+    const trace = document.getElementById('trace');
+    if (trace) trace.dataset.state = 'live';
+
+    // transferSize is 0 when the browser reused its own saved copy of the
+    // page, which means nothing travelled the route this time.
+    const cameOverNetwork = nav.transferSize > 0;
+    let firstByte = '';
+
+    if (cameOverNetwork) {
+      const total = nav.responseEnd - nav.startTime;
+      setText('route-title', 'This page reached you in ' + ms(total));
+      setText('route-note', 'Measured in your browser just now. I set up this hosting on AWS myself.');
+      setText(
+        'trace-foot',
+        "Timings from your browser's Navigation Timing API for this visit. " +
+          "Edge location and cache status from CloudFront's x-amz-cf-pop and x-cache headers.",
+      );
+
+      const protocol = PROTOCOLS[nav.nextHopProtocol];
+      if (protocol) setLive('browser', ['connected over ', [protocol]]);
+
+      const dns = nav.domainLookupEnd - nav.domainLookupStart;
+      setLive('dns', dns > 0 ? ['answered in ', [ms(dns)]] : ['already known, no lookup needed']);
+
+      firstByte = ms(nav.responseStart - nav.requestStart);
+      setLive('edge', ['first byte back in ', [firstByte]]);
+
+      drawWaterfall(nav, total);
+    } else {
+      setText(
+        'trace-foot',
+        'Your browser reused its saved copy of this page, so nothing travelled the route this time. ' +
+          'Reload to measure a fresh trip.',
+      );
+    }
+
+    // Ask CloudFront which edge location is answering and whether the page
+    // was in its cache. HEAD returns only the headers, so this is tiny.
+    try {
+      const res = await fetch(location.pathname, { method: 'HEAD', cache: 'no-store' });
+      const pop = res.headers.get('x-amz-cf-pop') ?? '';
+      const cache = (res.headers.get('x-cache') ?? '').toLowerCase();
+      const code = pop.slice(0, 3);
+      const city = EDGE_CITIES[code] ?? code;
+
+      if (city) {
+        setLive(
+          'edge',
+          firstByte
+            ? [[pop], ' ' + city + ' edge, first byte back in ', [firstByte]]
+            : ['answered from the ', [city], ' edge (' + pop + ')'],
+        );
+      }
+
+      if (cache.includes('hit')) {
+        setLive('origin', ['not contacted this time, the edge has a copy ', ['cached']]);
+      } else if (cache.includes('miss')) {
+        setLive('origin', ['sends a ', ['fresh copy'], ' when the edge asks for one']);
+      }
+    } catch {
+      // No headers, no problem: the panel still reads fine without them.
+    }
+  }
+
+  if (ON_LIVE_SITE) {
+    // responseEnd is only final once the page has finished loading
+    if (document.readyState === 'complete') {
+      showRoute();
+    } else {
+      window.addEventListener('load', () => setTimeout(showRoute, 0));
+    }
+  }
+</script>
+
+<style>
+/* ---------- Route: the request trace ---------- */
+:global(#route-title) {
+  max-width: 22ch;
+  text-wrap: balance;
+  margin-bottom: 1.25rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.route-note {
+  max-width: 52ch;
+  color: var(--ink-2);
+  margin-bottom: clamp(2.5rem, 5vw, 3.5rem);
+}
+
+.trace {
+  --rail: 0.4375rem;  /* centre of the hop marker */
+  --cols: 4.25rem minmax(8rem, 0.8fr) minmax(0, 1.6fr) minmax(12rem, 1.2fr);
+  border-top: 1px solid var(--ink);
+  border-bottom: 1px solid var(--ink);
+}
+
+.trace-head,
+.hop {
+  display: grid;
+  grid-template-columns: var(--cols);
+  column-gap: var(--gap);
+  align-items: baseline;
+}
+
+.trace-head {
+  padding-block: 0.6rem;
+  border-bottom: 1px solid var(--rule);
+  font: 400 0.6875rem/1.4 var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-3);
+}
+
+.hop {
+  position: relative;
+  padding-block: 1.35rem;
+}
+
+.hop + .hop {
+  border-top: 1px solid var(--rule);
+}
+
+/* The rail: dashed while nothing is measured, drawn solid in signal as each
+   hop gets a real number. */
+.hop::before,
+.hop::after {
+  content: "";
+  position: absolute;
+  left: var(--rail);
+  width: 0;
+  top: 0;
+  bottom: 0;
+}
+
+.hop::before {
+  border-left: 1px dashed var(--rule);
+}
+
+.hop:first-child::before,
+.hop:first-child::after {
+  top: 1.95rem;
+}
+
+.hop:last-child::before,
+.hop:last-child::after {
+  bottom: calc(100% - 1.95rem);
+}
+
+.hop::after {
+  border-left: 2px solid var(--signal);
+  margin-left: -0.5px;
+  transform: scaleY(0);
+  transform-origin: top;
+}
+
+.hop.is-live::after {
+  transform: scaleY(1);
+}
+
+.hop-n {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  font: 400 0.8125rem/1 var(--mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-3);
+}
+
+.hop-n::before {
+  content: "";
+  flex: none;
+  width: 0.875rem;
+  height: 0.875rem;
+  border: 1px solid var(--ink);
+  background: var(--paper);
+  transition: background-color 200ms ease;
+}
+
+.hop.is-live .hop-n {
+  color: var(--signal);
+}
+
+.hop.is-live .hop-n::before {
+  background: var(--signal);
+  border-color: var(--signal);
+}
+
+.hop-node {
+  font-size: 1.25rem;
+  font-weight: 650;
+  font-stretch: 85%;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.hop-role {
+  color: var(--ink-2);
+  line-height: 1.5;
+}
+
+.hop-live {
+  font: 400 0.8125rem/1.5 var(--mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+/* Nothing measured: a quiet dash, explained in the footnote below */
+.hop-live:empty::before {
+  content: "\2014" / "not measured";
+  color: var(--ink-3);
+}
+
+.hop-live :global(b) {
+  font-weight: 600;
+  color: var(--signal);
+}
+
+/* Waterfall of real Navigation Timing phases */
+.waterfall {
+  padding-block: 1.5rem 1.75rem;
+  border-top: 1px solid var(--ink);
+}
+
+.waterfall-cap {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  font: 400 0.6875rem/1.4 var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-3);
+}
+
+.waterfall-total {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.trace :global(.wf-row) {
+  display: grid;
+  grid-template-columns: 4.25rem minmax(8rem, 0.8fr) minmax(0, 2.8fr) 4.5rem;
+  column-gap: var(--gap);
+  align-items: center;
+  min-height: 1.875rem;
+  font: 400 0.8125rem/1.4 var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.trace :global(.wf-label) {
+  grid-column: 2;
+  color: var(--ink-2);
+}
+
+.trace :global(.wf-track) {
+  position: relative;
+  height: 0.75rem;
+  background:
+    repeating-linear-gradient(to right, var(--rule) 0 1px, transparent 1px 10%);
+}
+
+.trace :global(.wf-bar) {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  min-width: 2px;
+  background: var(--signal);
+  transform-origin: left;
+}
+
+.trace :global(.wf-ms) {
+  text-align: right;
+  color: var(--ink);
+}
+
+.trace-foot {
+  padding-block: 1rem;
+  border-top: 1px solid var(--rule);
+  font: 400 0.75rem/1.6 var(--mono);
+  color: var(--ink-3);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hop::after {
+    transition: transform 420ms var(--ease);
+    transition-delay: calc(var(--i, 0) * 140ms);
+  }
+
+  .trace[data-state="live"] :global(.wf-bar) {
+    animation: wf-draw 600ms var(--ease) both;
+    animation-delay: calc(var(--i, 0) * 120ms + 200ms);
+  }
+}
+
+@keyframes wf-draw {
+  from { transform: scaleX(0); }
+}
+
+@media (max-width: 1099px) {
+  .trace {
+    --cols: 4.25rem minmax(0, 1fr) minmax(0, 1.4fr);
+  }
+
+  .trace-head span:last-child {
+    display: none;
+  }
+
+  .hop-live {
+    grid-column: 3;
+    margin-top: 0.4rem;
+  }
+
+  .hop-live:empty {
+    display: none;
+  }
+
+  .trace :global(.wf-row) {
+    grid-template-columns: 4.25rem minmax(7rem, 0.6fr) minmax(0, 2fr) 4rem;
+  }
+}
+
+@media (max-width: 599px) {
+  .trace {
+    --cols: 2.5rem minmax(0, 1fr);
+  }
+
+  .trace-head {
+    display: none;
+  }
+
+  .hop {
+    row-gap: 0.3rem;
+    padding-block: 1.1rem;
+  }
+
+  .hop-n {
+    grid-row: 1 / span 3;
+    align-self: start;
+    padding-top: 0.2rem;
+  }
+
+  /* number is implied by the list on phones; keep just the marker */
+  .hop-n {
+    font-size: 0;
+  }
+
+  .hop:first-child::before,
+  .hop:first-child::after {
+    top: 1.75rem;
+  }
+
+  .hop:last-child::before,
+  .hop:last-child::after {
+    bottom: calc(100% - 1.75rem);
+  }
+
+  .hop-node,
+  .hop-role,
+  .hop-live {
+    grid-column: 2;
+    margin: 0;
+  }
+
+  .hop-role {
+    font-size: 0.9375rem;
+  }
+
+  .trace :global(.wf-row) {
+    grid-template-columns: 2.5rem minmax(0, 1fr) 3.75rem;
+    grid-template-areas: ". label ms" ". track track";
+    row-gap: 0.3rem;
+    padding-block: 0.3rem;
+  }
+
+  .trace :global(.wf-label) { grid-area: label; }
+  .trace :global(.wf-track) { grid-area: track; }
+  .trace :global(.wf-ms) { grid-area: ms; }
+}
+</style>

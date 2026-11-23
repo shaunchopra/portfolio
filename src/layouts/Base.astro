@@ -1,0 +1,32 @@
+---
+import '../styles/global.css';
+import SEO from '../components/SEO.astro';
+import { site } from '../data/site';
+
+type Props = Parameters<typeof SEO>[0];
+
+const props = Astro.props;
+---
+<!doctype html>
+<html lang={site.lang}>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <SEO {...props} />
+
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="manifest" href="/site.webmanifest">
+    <meta name="theme-color" content={site.theme.light} media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content={site.theme.dark} media="(prefers-color-scheme: dark)">
+    <meta name="color-scheme" content="light dark">
+
+    <link rel="preload" href="/fonts/bricolage-grotesque.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="sitemap" href="/sitemap-index.xml">
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <slot />
+  </body>
+</html>
