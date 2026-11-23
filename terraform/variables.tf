@@ -50,9 +50,9 @@ variable "github_oidc_subjects" {
   description = "Allowed OIDC `sub` claims (exact match) for the deploy role."
   type        = list(string)
   default = [
-    "repo:shaunchopra/portfolio:ref:refs/heads/main",
-    "repo:shaunchopra/portfolio:pull_request",
-    "repo:shaunchopra/portfolio:environment:production",
+    "repo:shaunchopra@91772089/portfolio@1420312753:ref:refs/heads/main",
+    "repo:shaunchopra@91772089/portfolio@1420312753:pull_request",
+    "repo:shaunchopra@91772089/portfolio@1420312753:environment:production",
   ]
 }
 

@@ -111,9 +111,12 @@ Use `terraform output github_deploy_role_arn` as `role-to-assume` in
 The trust policy accepts only `aud = sts.amazonaws.com` and these exact `sub` values
 (`var.github_oidc_subjects`):
 
-- `repo:shaunchopra/portfolio:ref:refs/heads/main`
-- `repo:shaunchopra/portfolio:pull_request`
-- `repo:shaunchopra/portfolio:environment:production`
+- `repo:shaunchopra@91772089/portfolio@1420312753:ref:refs/heads/main`
+- `repo:shaunchopra@91772089/portfolio@1420312753:pull_request`
+- `repo:shaunchopra@91772089/portfolio@1420312753:environment:production`
+
+These use GitHub's immutable subject format (owner and repo IDs embedded), which this repo is
+configured for. A deleted-and-recreated repo with the same name cannot assume the role.
 
 Note: if a job declares `environment: production`, GitHub sends the `environment:` subject
 rather than the `ref:` one.
